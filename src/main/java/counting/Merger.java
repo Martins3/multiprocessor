@@ -23,11 +23,12 @@ public class Merger implements Network {
   
   public Merger(int _size) {
     size = _size;
-    layer = new Balancer[size / 2];
+    layer = new Balancer[size / 2]; // 最外层 : size / 2
     for (int i = 0; i < size / 2; i++) {
       layer[i] = new Balancer();
     }
     if (size > 2) {
+      // 通过merger 来构造的吗 ?
       half = new Merger[]{new Merger(size/2), new Merger(size/2)};
     }    
   }

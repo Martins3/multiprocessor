@@ -29,6 +29,7 @@ public class Tree {
     }
   }
   
+  // 由于没有sync 所以可以自己冲撞自己的情况出现
   public int getAndIncrement() throws InterruptedException {
     Stack<Node> stack = new Stack<Node>();
     Node myLeaf = leaf[ThreadID.get() / 2];
@@ -46,9 +47,10 @@ public class Tree {
       stack.push(node);
       node = node.parent;
     }
-    // phase 3
+    // phase 3 : 提交结果
     int prior = stop.op(combined);
-    // phase 4
+
+    // phase 4 : 反馈结果
     while (!stack.empty()) {
       node = stack.pop();
       node.distribute(prior);

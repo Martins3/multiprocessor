@@ -12,23 +12,27 @@ package counting;
 
 /**
  * Bitonic counting network.
+ * 
  * @author Maurice Herlihy
  */
 public class Bitonic implements Network {
   // two half-size bitonic networks
-  Bitonic[]   half;
+  Bitonic[] half;
   // output i from each half-size mergers goes to layer[i]
   Merger layer;
   final int size;
-  
+
   public Bitonic(int _size) {
     size = _size;
     layer = new Merger(size);
     if (size > 2) {
-      half = new Bitonic[]{new Bitonic(size/2), new Bitonic(size/2)};
-    }    
+      half = new Bitonic[] { new Bitonic(size / 2), new Bitonic(size / 2) };
+    }
   }
 
+  // input 的含义是什么 : 进入的端口
+  // The class provides a traverse(i) method, where i is the wire on
+  // which the token enters.
   public int traverse(int input) {
     int output = 0;
     if (size > 2) {
