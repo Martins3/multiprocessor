@@ -38,6 +38,8 @@ public class Merger implements Network {
     if (size > 2) {
       output = half[input % 2].traverse(input / 2);
     }
+    // merger 的构造方法
+    //
     return output + layer[output].traverse(0);
   }
 

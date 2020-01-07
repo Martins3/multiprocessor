@@ -41,6 +41,7 @@ public class SimpleSnapshot<T> implements Snapshot<T> {
     oldCopy = collect();
     collect: while (true) {
       newCopy = collect();
+      // 粗暴的比较指针，update 是创建新的对象(只要不recycle那么问题不大
       if (! Arrays.equals(oldCopy, newCopy)) {
         oldCopy = newCopy;
         continue collect;

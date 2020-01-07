@@ -41,6 +41,7 @@ public class CompositeLock implements Lock{
     tail = new AtomicStampedReference<QNode>(null, 0);
     random = new Random();
     waiting = new QNode[SIZE];
+    // 事先创建节点
     for (int i = 0; i < waiting.length; i++) {
       waiting[i] = new QNode();
     }

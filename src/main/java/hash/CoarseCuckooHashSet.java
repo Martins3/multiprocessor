@@ -10,9 +10,6 @@
 
 package hash;
 
-import java.util.List;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.Random;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -42,6 +39,7 @@ public class CoarseCuckooHashSet<T> {
     random.setSeed(x.hashCode());
     return random.nextInt(size);
   }
+
   public boolean contains(T x) {
     lock.lock();
     try {
@@ -62,6 +60,7 @@ public class CoarseCuckooHashSet<T> {
       if (contains(x)) {
         return false;
       }
+
       for (int i = 0; i < LIMIT; i++) {
         if ((x = swap(0, hash0(x), x)) == null) {
           return true;
@@ -93,7 +92,9 @@ public class CoarseCuckooHashSet<T> {
       lock.unlock();
     }
   }
-  
+
+  // 将 value 放到 i j 上
+  // 并且返回结果
   private T swap(int i, int j, T value) {
     T result = table[i][j];
     table[i][j] = value;

@@ -48,12 +48,14 @@ public class SynchronousQueue<T> {
   public void enq(T value) throws InterruptedException {
     if (value == null) throw new NullPointerException();
     try {
+      // 使用 enqueuing 作为数量的原子寄存器
       while (enqueuing) { // another enqueuer's turn
         condition.await();
       }
       enqueuing = true; // my turn starts
       item = value;
       condition.signalAll();
+      // 等待 deq 的工作完成
       while (item != null) {
         condition.await();
       }

@@ -15,6 +15,7 @@ import java.util.List;
 
 /**
  * Phased concurrent cuckoo hash set.
+ * 
  * @param T item type
  * @author Maurice Herlihy
  */
@@ -29,17 +30,19 @@ public abstract class PhasedCuckooHashSet<T> {
   static final int THRESHOLD = PROBE_SIZE / 2;
   // resize when chain of phases exceeds this
   static final int LIMIT = 8;
-  
+
   private final static long multiplier = 0x5DEECE66DL;
   private final static long addend = 0xBL;
   private final static long mask = (1L << 31) - 1;
-  
+
   /**
    * Create new set holding at least this many entries.
+   * 
    * @param size number of entries to expect
    */
   public PhasedCuckooHashSet(int size) {
     capacity = size;
+    // 为了 concurrent 而构建的两个
     table = (List<T>[][]) new java.util.ArrayList[2][capacity];
     for (int i = 0; i < 2; i++) {
       for (int j = 0; j < capacity; j++) {
@@ -47,24 +50,30 @@ public abstract class PhasedCuckooHashSet<T> {
       }
     }
   }
+
   /**
    * First hash function
+   * 
    * @param x Item to hash.
    * @return non-negative hash value
    */
   final public int hash0(T x) {
     return (x.hashCode() & 0xffffff) % capacity;
   }
+
   /**
    * Second hash function
+   * 
    * @param x item to hash
    * @return non-negative hash value
    */
   final public synchronized int hash1(T x) {
     return (int) Math.abs((x.hashCode() * multiplier + addend) & mask);
   }
+
   /**
    * Is item in the set?
+   * 
    * @param x search for this item
    * @return true iff item is found
    */
@@ -85,8 +94,10 @@ public abstract class PhasedCuckooHashSet<T> {
       release(x);
     }
   }
+
   /**
    * remove this entry from the set
+   * 
    * @param x entry to remove
    * @return true iff entry found in set
    */
@@ -109,8 +120,10 @@ public abstract class PhasedCuckooHashSet<T> {
       release(x);
     }
   }
+
   /**
    * Add an item to the set.
+   * 
    * @return true iff entry was not preset
    * @param x entry to add
    */
@@ -135,10 +148,12 @@ public abstract class PhasedCuckooHashSet<T> {
         return true;
       } else if (set0.size() < PROBE_SIZE) {
         set0.add(x);
-        i = 0; h = h0;
+        i = 0;
+        h = h0;
       } else if (set1.size() < PROBE_SIZE) {
         set1.add(x);
-        i = 1; h = h1;
+        i = 1;
+        h = h1;
       } else {
         mustResize = true;
       }
@@ -151,42 +166,55 @@ public abstract class PhasedCuckooHashSet<T> {
     } else if (!relocate(i, h)) {
       resize();
     }
-    return true;  // x must have been present
+    return true; // x must have been present
   }
-  
+
   /**
    * Synchronize before adding, removing, or testing for item
+   * 
    * @param x item involved
    */
   public abstract void acquire(T x);
+
   /**
    * synchronize after adding, removing, or testing for item
+   * 
    * @param x item involved
    */
   public abstract void release(T x);
+
   /**
    * double the set size
    */
   public abstract void resize();
+
   /**
    * Repeatedly moves excess items to other probe sets.
-   * @param i Probe set column (0 or 1)
+   * 
+   * @param i  Probe set column (0 or 1)
    * @param hi Probe set row (hash0 or hash1)
    * @return <CODE>true</CODE> if all probe sets less than <CODE>THRESHOLD</CODE>,
-   * <CODE>false</CODE> to trigger global resizing.
+   *         <CODE>false</CODE> to trigger global resizing.
    */
   protected boolean relocate(int i, int hi) {
     int hj = 0;
     int j = 1 - i;
     for (int round = 0; round < LIMIT; round++) {
       List<T> iSet = table[i][hi];
-      T y = iSet.get(0);
+      T y = iSet.get(0); // 随便挑选的 y 形成的内容
+      // 得到将要移动的位置
       switch (i) {
-      case 0: hj = hash1(y) % capacity; break;
-      case 1: hj = hash0(y) % capacity; break;
+      case 0:
+        hj = hash1(y) % capacity;
+        break;
+      case 1:
+        hj = hash0(y) % capacity;
+        break;
       }
+      // TODO 为何此时需要 acquire y
+      // 所以变量访问的时候都是需要 acquire 的
       acquire(y);
-      List<T> jSet = table[j][hj];
+      List<T> jSet = table[j][hj]; // 得到移动位置的发
       try {
         if (iSet.remove(y)) {
           if (jSet.size() < THRESHOLD) {
@@ -198,6 +226,9 @@ public abstract class PhasedCuckooHashSet<T> {
             hi = hj;
             j = 1 - j;
           } else {
+            // 向 y 中间添加出现问题
+            // 那么在上层的函数调用中间会触发resize
+            // 所以没有必要考虑 jSet 的问题
             iSet.add(y);
             return false;
           }
@@ -212,35 +243,37 @@ public abstract class PhasedCuckooHashSet<T> {
     }
     return false;
   }
+
   /**
    * Simple sanity check for debugging
+   * 
    * @return <CODE>true</CODE> iff structure passes tests
    */
   public boolean check() {
     for (int i = 0; i < capacity; i++) {
       List<T> set = table[0][i];
-      for (T x: set) {
+      for (T x : set) {
         if ((hash0(x) % capacity) != i) {
-          System.out.printf("Unexpected value %d at table[0][%d] hash %d\n",
-              x, i, hash0(x) % capacity);
+          System.out.printf("Unexpected value %d at table[0][%d] hash %d\n", x, i, hash0(x) % capacity);
           return false;
         }
       }
     }
     for (int i = 0; i < capacity; i++) {
       List<T> set = table[1][i];
-      for (T x: set) {
+      for (T x : set) {
         if ((hash1(x) % capacity) != i) {
-          System.out.printf("Unexpected value %d at table[0][%d] hash %d\n",
-              x, i, hash1(x) % capacity);
+          System.out.printf("Unexpected value %d at table[0][%d] hash %d\n", x, i, hash1(x) % capacity);
           return false;
         }
       }
     }
     return true;
   }
+
   /**
    * Unsynchronized version of contains()
+   * 
    * @param x search for this item
    * @return true iff item is found
    */
@@ -256,8 +289,10 @@ public abstract class PhasedCuckooHashSet<T> {
     }
     return false;
   }
+
   /**
    * Simple sanity check for debugging
+   * 
    * @param expectedSize expected size
    * @return <CODE>true</CODE> iff structure passes tests
    */
@@ -268,8 +303,7 @@ public abstract class PhasedCuckooHashSet<T> {
         if (x != null) {
           size++;
           if ((hash0(x) % capacity) != i) {
-            System.out.printf("Unexpected value %d at table[0][%d] hash %d\n",
-                x, i, hash0(x) % capacity);
+            System.out.printf("Unexpected value %d at table[0][%d] hash %d\n", x, i, hash0(x) % capacity);
             return false;
           }
         }
@@ -278,8 +312,7 @@ public abstract class PhasedCuckooHashSet<T> {
         if (x != null) {
           size++;
           if ((hash1(x) % capacity) != i) {
-            System.out.printf("Unexpected value %d at table[0][%d] hash %d\n",
-                x, i, hash1(x) % capacity);
+            System.out.printf("Unexpected value %d at table[0][%d] hash %d\n", x, i, hash1(x) % capacity);
             return false;
           }
         }
@@ -291,5 +324,5 @@ public abstract class PhasedCuckooHashSet<T> {
     }
     return true;
   }
-  
+
 }

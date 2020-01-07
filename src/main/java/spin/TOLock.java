@@ -44,6 +44,7 @@ public class TOLock implements Lock{
     if (pred == null || pred.pred == AVAILABLE) {
       return true;  // lock was free; just return
     }
+    // 向前滑动，查找到标准节点 AVAILABLE 
     while (System.nanoTime() - startTime < patience) {
       QNode predPred = pred.pred;
       if (predPred == AVAILABLE) {
@@ -52,6 +53,9 @@ public class TOLock implements Lock{
         pred = predPred;
       }
     }
+    // 当前节点为队列尾端，那么直接丢弃
+    // 否则，告诉别人，我已经放弃，只可以直接搜索我的前任了
+    //
     // timed out; reclaim or abandon own node
     if (!tail.compareAndSet(qnode, pred))
       qnode.pred = pred;

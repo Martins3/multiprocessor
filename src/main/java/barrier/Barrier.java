@@ -1,4 +1,4 @@
-/*
+/**
  * Barrier.java
  *
  * Created on August 3, 2005, 10:46 PM

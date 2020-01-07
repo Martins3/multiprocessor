@@ -46,6 +46,7 @@ public class RefinableHashSet<T> extends BaseHashSet<T>{
     while (true) {
       do { // wait until not resizing
         who = owner.get(mark);
+        // who != me => null or else
       } while (mark[0] && who != me);
       ReentrantLock[] oldLocks = this.locks;
       int myBucket = Math.abs(x.hashCode() % oldLocks.length);

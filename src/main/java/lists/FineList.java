@@ -40,6 +40,7 @@ public class FineList<T> {
     try {
       Node curr = pred.next;
       curr.lock();
+      // 总是希望连续持有两个锁!
       try {
         while (curr.key < key) {
           pred.unlock();
