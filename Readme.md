@@ -14,3 +14,7 @@
 | ch15    | priority         |
 | ch16    | Steal            |
 | ch17    | Barrier          |
+
+## Notice
+1. Java version >= 1.10 needed, use archlinux-java to get and set your java version.
+

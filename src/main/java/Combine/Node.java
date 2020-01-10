@@ -98,14 +98,14 @@ public class Node {
       // 因为每一个路径对应一个thread id 而该id 不会执行多次
       // 当一个节点出现可以op 必定没有人第三者过来 precombine
       while (cStatus != CStatus.RESULT)
-        wait(); // 等待结果返回
+        wait(); // 等待结果返回，被 distribute 的 notify 唤醒
 
-      locked = false; // 释放active的combine 立刻上的锁
-      notifyAll(); //
-
+      // 上一次释放锁的时候，其中，能够获取到的只有是 combined 中间的内容
+      // 其combine 的时候，会上锁，原因看 combine 最开始的注释
+      // 此处唤醒的是下一轮中间的内容，其实这四步操作是放在一起的。
+      locked = false; 
+      notifyAll();
       cStatus = CStatus.IDLE; // next epoch
-      // 上面的节点的distribute 下降的过程中间，
-      // 将求和结果传递给 getAndIncrement 的发起者
       return result;
     default:
       throw new PanicException("unexpected Node state");
@@ -118,7 +118,7 @@ public class Node {
     switch (cStatus) {
     case FIRST:
       cStatus = CStatus.IDLE;
-      locked = false; // TODO for what ?
+      locked = false;
       break;
     case SECOND:
       result = prior + firstValue; // 向下的过程中间，将经过的路径的所有的计算为 result

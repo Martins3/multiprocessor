@@ -55,6 +55,8 @@ public class LockFreeList<T> {
         // splice in new node
         Node node = new Node(item);
         node.next = new AtomicMarkableReference(curr, false);
+        // 如果在插入的过程中间，如果pred 的下一个不是 curr，或者其标记不对，说明 curr 已经被删除了
+        // 那么pred被删除，何如 ?
         if (pred.next.compareAndSet(curr, node, false, false)) {
           return true;
         }
@@ -118,7 +120,8 @@ public class LockFreeList<T> {
      */
     int key;
     /**
-     * next node in list TODO bool for what : 标记下一个节点的删除 !
+     * next node in list
+     * 其中bool 变量对于下一个变量含有标记。
      */
     AtomicMarkableReference<Node> next;
 
@@ -185,6 +188,7 @@ public class LockFreeList<T> {
       curr = pred.next.getReference();
       while (true) {
         // 获取下一个数值
+        // 注意，整个marked 是marked 自己的
         succ = curr.next.get(marked);
         while (marked[0]) { // replace curr if marked
           // 当前节点其实已经被删除了
@@ -193,9 +197,11 @@ public class LockFreeList<T> {
           // 有必要从头开始重新分析吗 ? head 总是valid 的，否则反向找上一个valid
           // 但是，这不是双向的链表!
           //
+          // 物理删除，删除的需要保证当前的节点存在，并且下一个节点是 true 的。
           snip = pred.next.compareAndSet(curr, succ, false, false);
           if (!snip)
             continue retry;
+          // 物理删除成功!
           curr = pred.next.getReference();
           succ = curr.next.get(marked);
         }

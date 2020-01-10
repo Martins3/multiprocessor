@@ -48,6 +48,8 @@ public class Tree {
       node = node.parent;
     }
     // phase 3 : 提交结果
+    // 对于root节点，那就是得到结果了
+    // 对于second 来说，说明之前依赖于此处的内容可以开始回收的
     int prior = stop.op(combined);
 
     // phase 4 : 反馈结果
